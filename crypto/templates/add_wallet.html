@@ -1,0 +1,110 @@
+{% extends 'default.html' %}
+{% block content %}
+
+<style>
+.form-box {
+    max-width: 520px;
+    margin: 50px auto;
+    background: #f8fafc;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.08);
+}
+.form-box h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #0f172a;
+}
+.form-box label {
+    font-weight: 600;
+    margin-top: 14px;
+    display: block;
+    color: #334155;
+}
+.form-box input,
+.form-box select {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    margin-top: 6px;
+}
+.form-box button {
+    margin-top: 26px;
+    width: 100%;
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.form-box button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+.error {
+    color: #dc2626;
+    text-align: center;
+    margin-bottom: 12px;
+}
+.divider {
+    margin: 18px 0;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 13px;
+}
+</style>
+
+<div class="form-box">
+    <h2>Добавить кошелёк</h2>
+
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <label>Сеть блокчейна</label>
+        <select name="network" required>
+            <option value="">— выбрать сеть —</option>
+            {% for net in networks %}
+                <option value="{{ net.id }}">{{ net.name }} ({{ net.native_coin }})</option>
+            {% endfor %}
+        </select>
+
+        <label>Адрес кошелька</label>
+        <input
+            type="text"
+            name="address"
+            placeholder="0x... или другой формат"
+            required
+        >
+
+        {% if existing_nicknames %}
+            <label>Привязать к существующему кошельку</label>
+            <select name="existing_nickname">
+                <option value="">— выбрать —</option>
+                {% for name in existing_nicknames %}
+                    <option value="{{ name }}">{{ name }}</option>
+                {% endfor %}
+            </select>
+
+            <div class="divider">или</div>
+        {% endif %}
+
+        <label>Название нового кошелька</label>
+        <input
+            type="text"
+            name="new_nickname"
+            placeholder="Tangem / Ledger / Metamask"
+        >
+
+        <button type="submit">Добавить кошелёк</button>
+    </form>
+</div>
+
+{% endblock %}

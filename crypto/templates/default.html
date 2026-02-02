@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Wb">
+    <meta name="author" content="">
+
+    <title>{% block title %}CS{% endblock title %}</title>
+    {% load static %}
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles -->
+
+</head>
+
+<body>
+<style>
+    /* 💠 Глобальные переменные */
+    :root {
+        --primary-blue: #2563eb;
+        --blue-light: #3b82f6;
+        --blue-dark: #1e40af;
+        --accent-purple: #4f46e5;
+        --text-light: #f8fafc;
+        --text-dark: #1e293b;
+        --bg-gradient: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 💠 Общие стили */
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #dbeafe 100%);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        padding-top: 70px; /* Для фиксированной навигации */
+    }
+
+    /* 💠 Навигационная панель */
+    .navbar {
+        background: var(--bg-gradient) !important;
+        box-shadow: var(--shadow-lg);
+        padding: 0.8rem 0;
+        position: fixed;
+        top: 0;
+        width: 100%;
+        z-index: 1000;
+    }
+
+    .navbar-brand {
+        color: var(--text-light) !important;
+        font-weight: 700;
+        font-size: 1.4rem;
+        letter-spacing: 0.5px;
+    }
+
+    .navbar-brand:hover {
+        color: white !important;
+        opacity: 0.9;
+    }
+
+    .navbar-nav .nav-link {
+        color: rgba(255, 255, 255, 0.9) !important;
+        font-weight: 500;
+        padding: 0.5rem 1rem !important;
+        margin: 0 0.2rem;
+        border-radius: 8px;
+        transition: all 0.25s ease;
+        position: relative;
+    }
+
+    .navbar-nav .nav-link:hover {
+        color: white !important;
+        background: rgba(255, 255, 255, 0.15);
+        transform: translateY(-1px);
+    }
+
+    .navbar-nav .nav-link.active {
+        color: white !important;
+        background: rgba(255, 255, 255, 0.25);
+        font-weight: 600;
+    }
+
+    .navbar-nav .nav-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: -5px;
+        left: 20%;
+        right: 20%;
+        height: 2px;
+        background: white;
+        border-radius: 1px;
+    }
+
+    .navbar-toggler {
+        border: none;
+        padding: 0.5rem;
+    }
+
+    .navbar-toggler:focus {
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
+    }
+
+    .navbar-toggler-icon {
+        filter: brightness(0) invert(1);
+        width: 1.5em;
+        height: 1.5em;
+    }
+
+    /* 💠 Контейнер навигации */
+    .navbar .container {
+        padding: 0 15px;
+    }
+
+    /* 💠 Переключатель языка */
+    .language-form {
+        margin-left: 15px;
+        display: flex;
+        align-items: center;
+    }
+
+    .language-select {
+        background-color: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 6px;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.9rem;
+        color: var(--blue-dark);
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+
+    .language-select:hover {
+        background-color: white;
+        border-color: white;
+    }
+
+    .language-select:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+    }
+
+    /* 💠 Основной контент */
+    .content-wrapper {
+        flex: 1;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    main.container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+
+    /* 💠 Подвал */
+    .footer {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: var(--text-light);
+        padding: 1.5rem 0;
+        margin-top: auto;
+        text-align: center;
+    }
+
+    .footer p {
+        margin: 0;
+        font-size: 0.9rem;
+    }
+
+    .footer small {
+        opacity: 0.8;
+        font-size: 0.8rem;
+    }
+
+    /* 💠 Уведомления (если будут добавлены) */
+    .alert-messages {
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        z-index: 1050;
+        max-width: 350px;
+    }
+
+    /* 💠 Адаптивность */
+    @media (max-width: 992px) {
+        .navbar-nav {
+            padding: 1rem 0;
+        }
+
+        .navbar-nav .nav-link {
+            margin: 0.2rem 0;
+            padding: 0.75rem 1rem !important;
+        }
+
+        .language-form {
+            margin-left: 0;
+            margin-top: 0.5rem;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 768px) {
+        body {
+            padding-top: 60px;
+        }
+
+        .navbar-brand {
+            font-size: 1.2rem;
+        }
+
+        .container {
+            padding-left: 15px;
+            padding-right: 15px;
+        }
+    }
+
+    /* 💠 Анимации */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    /* 💠 Плавное появление */
+    .fade-in {
+        opacity: 0;
+        animation: fadeIn 0.5s ease-out forwards;
+    }
+
+    /* 💠 Ховер эффекты для текста */
+    .hover-lift {
+        transition: transform 0.2s ease;
+    }
+
+    .hover-lift:hover {
+        transform: translateY(-2px);
+    }
+</style>
+
+    <!-- Навигация -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-semibold" href="/crypto/">CryptoStats</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarResponsive" aria-controls="navbarResponsive"
+                    aria-expanded="false" aria-label="Переключить навигацию">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse justify-content-end" id="navbarResponsive">
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">
+                                {{ request.user.username }}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'logout_confirm' %}">Выйти</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/sign/login/">Войти</a>
+                        </li>
+                    {% endif %}
+                         <li class="nav-item">
+                            <a class="nav-link" href="{% url 'list_of_exchanges' %}">Добавить биржу</a>
+                        </li>
+                       <li class="nav-item">
+                            <a class="nav-link" href="{% url 'my_exchanges' %}">Мои кошельки</a>
+                        </li>
+                                           <li class="nav-item">
+                            <a class="nav-link" href="{% url 'user_balances' %}">Баланс</a>
+                        </li>
+
+                    {% block navigation %}{% endblock navigation %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основное содержимое -->
+    <main class="content-wrapper">
+        <div class="container pt-4">
+            {% block content %}
+                {{ flatpage.content }}
+            {% endblock content %}
+        </div>
+    </main>
+
+    <!-- Подвал -->
+    <footer class="footer bg-dark text-center text-white py-4 mt-auto">
+        <div class="container">
+            <p class="mb-1">Все права защищены</p>
+            <small class="text-muted">Создано с ❤️ на Django</small>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom Scripts -->
+    <script>
+        // Активация активной ссылки в навигации
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
+
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+
+            // Плавное появление контента
+            document.body.classList.add('fade-in');
+
+            // Автоскрытие уведомлений
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+
+            // Плавная прокрутка
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    const href = this.getAttribute('href');
+                    if (href.startsWith('#')) {
+                        e.preventDefault();
+                        const target = document.querySelector(href);
+                        if (target) {
+                            target.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start'
+                            });
+                        }
+                    }
+                });
+            });
+        });
+
+        // Функция для показа/скрытия контента
+        function toggleContent(elementId, show = true) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.style.display = show ? 'block' : 'none';
+                if (show) {
+                    element.classList.add('animate-fade-in');
+                }
+            }
+        }
+
+        // Функция для загрузки данных
+        function loadData(url, containerId) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = '<div class="text-center p-4">Загрузка...</div>';
+                fetch(url)
+                    .then(response => response.text())
+                    .then(data => {
+                        container.innerHTML = data;
+                        container.classList.add('animate-fade-in');
+                    })
+                    .catch(error => {
+                        container.innerHTML = '<div class="alert alert-danger">Ошибка загрузки</div>';
+                    });
+            }
+        }
+    </script>
+
+    {% block extra_js %}{% endblock extra_js %}
+</body>
+</html>

@@ -1,0 +1,112 @@
+
+{% extends 'default.html' %}
+{% load i18n %}
+
+{% block content %}
+<style>
+  .login-container {
+    max-width: 420px;
+    margin: 60px auto;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    padding: 36px 32px;
+  }
+
+  .login-header {
+    text-align: center;
+    font-size: 26px;
+    font-weight: 600;
+    color: #4f46e5;
+    margin-bottom: 28px;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  label {
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  input[type="text"],
+  input[type="password"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.6px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: all 0.2s ease;
+  }
+
+  input[type="text"]:focus,
+  input[type="password"]:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  }
+
+  input[type="submit"] {
+    background: linear-gradient(90deg, #4f46e5, #06b6d4);
+    color: #fff;
+    font-weight: 600;
+    font-size: 16px;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+
+  input[type="submit"]:hover {
+    background: linear-gradient(90deg, #4338ca, #0891b2);
+  }
+
+  .register-link {
+    text-align: center;
+    margin-top: 22px;
+  }
+
+  .register-link a {
+    display: inline-block;
+    color: #4f46e5;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1.5px solid #4f46e5;
+    padding: 10px 20px;
+    border-radius: 999px;
+    transition: all 0.25s ease;
+  }
+
+  .register-link a:hover {
+    background: #4f46e5;
+    color: #fff;
+  }
+</style>
+
+<div class="login-container">
+  <div class="login-header">{% trans "Войти в систему" %}</div>
+  <form method="post" action="{% url 'login' %}">
+    {% csrf_token %}
+    <div>
+      {{ form.username.label_tag }}
+      {{ form.username }}
+    </div>
+    <div>
+      {{ form.password.label_tag }}
+      {{ form.password }}
+    </div>
+    <input type="submit" value="{% trans 'Войти' %}">
+  </form>
+
+  <div class="register-link">
+    <a href="/accounts/signup">{% trans "Регистрация" %}</a>
+  </div>
+</div>
+{% endblock %}

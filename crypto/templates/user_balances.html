@@ -1,0 +1,399 @@
+{% extends 'default.html' %}
+
+{% block content %}
+<style>
+.content-wrapper { max-width: 900px; margin: 0 auto; padding: 10px 15px; }
+.page-title { text-align: center; font-size: 26px; font-weight: 600; color: #1e3a8a; margin-bottom: 30px; }
+
+.exchange-card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    margin-bottom: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+.exchange-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+
+/* Цветные полоски для каждой биржи */
+.exchange-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 4px;
+    background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
+}
+
+.exchange-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding-right: 10px;
+}
+.exchange-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.exchange-name::before {
+    content: '🏦';
+    font-size: 20px;
+}
+
+.total-info {
+    text-align: right;
+}
+.total-usd {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e40af;
+    margin-bottom: 3px;
+}
+.percent-badge {
+    display: inline-block;
+    background: #dbeafe;
+    color: #1d4ed8;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 5px;
+}
+
+.coin-list {
+    margin-top: 15px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    padding-left: 14px;
+    border-left: 2px dashed #d1d5db;
+    margin-left: 8px;
+}
+.coin-list.show {
+    max-height: 500px;
+    opacity: 1;
+}
+
+.coin-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: #f9fafb;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    transition: background 0.2s;
+}
+.coin-item:hover {
+    background: #f0f9ff;
+}
+
+.coin-symbol {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.coin-symbol::before {
+    content: '🪙';
+}
+
+.coin-value {
+    font-weight: 600;
+    color: #111827;
+}
+
+.coin-percent {
+    font-size: 13px;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+/* Общий баланс */
+.overall-balance {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    border-radius: 16px;
+    padding: 25px 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.2);
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+.overall-balance::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200px;
+    height: 200px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+}
+
+.total-balance-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.total-balance-header h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.total-percent-change {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+/* Статистика PnL */
+.pnl-statistic {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 25px;
+}
+.pnl-item {
+    background: rgba(255,255,255,0.15);
+    padding: 12px 18px;
+    border-radius: 12px;
+    min-width: 180px;
+    backdrop-filter: blur(10px);
+}
+.pnl-label {
+    font-size: 13px;
+    opacity: 0.9;
+    margin-bottom: 5px;
+}
+.pnl-value {
+    font-size: 18px;
+    font-weight: 700;
+}
+.positive { color: #86efac; } /* ярко-зеленый */
+.negative { color: #fca5a5; } /* ярко-красный */
+
+/* Общие монеты */
+.overall-coins-section {
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 18px;
+    margin-top: 15px;
+}
+.overall-coins-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    opacity: 0.9;
+}
+
+.overall-coins {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.coin-badge {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: transform 0.2s, background 0.2s;
+}
+.coin-badge:hover {
+    background: rgba(255,255,255,0.3);
+    transform: translateY(-2px);
+}
+.coin-percent-badge {
+    background: rgba(255,255,255,0.25);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+    margin: 20px 0;
+}
+.empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+</style>
+
+<main class="content-wrapper">
+    <h1 class="page-title">💰 Ваши балансы</h1>
+
+    {% if total_balance_usd %}
+    <div class="overall-balance">
+        <div class="total-balance-header">
+            <h2>${{ total_balance_usd|floatformat:2 }}</h2>
+            {% if statistic %}
+            <div class="total-percent-change {% if statistic.daily_percent >= 0 %}positive{% else %}negative{% endif %}">
+                {% if statistic.daily_percent >= 0 %}+{% endif %}{{ statistic.daily_percent|floatformat:2 }}%
+            </div>
+            {% endif %}
+        </div>
+
+        {% if statistic %}
+        <!-- PnL статистика -->
+        <div class="pnl-statistic">
+            <div class="pnl-item">
+                <div class="pnl-label">📈 За день</div>
+                <div class="pnl-value {% if statistic.daily_usd >= 0 %}positive{% else %}negative{% endif %}">
+                    {% if statistic.daily_usd >= 0 %}+{% endif %}${{ statistic.daily_usd|floatformat:2 }}
+                    <span class="pnl-percent">({% if statistic.daily_percent >= 0 %}+{% endif %}{{ statistic.daily_percent|floatformat:2 }}%)</span>
+                </div>
+            </div>
+
+            <div class="pnl-item">
+                <div class="pnl-label">📊 За месяц</div>
+                <div class="pnl-value {% if statistic.monthly_usd >= 0 %}positive{% else %}negative{% endif %}">
+                    {% if statistic.monthly_usd >= 0 %}+{% endif %}${{ statistic.monthly_usd|floatformat:2 }}
+                    <span class="pnl-percent">({% if statistic.monthly_percent >= 0 %}+{% endif %}{{ statistic.monthly_percent|floatformat:2 }}%)</span>
+                </div>
+            </div>
+
+            <div class="pnl-item">
+                <div class="pnl-label">🏆 За всё время</div>
+                <div class="pnl-value {% if statistic.all_time_usd >= 0 %}positive{% else %}negative{% endif %}">
+                    {% if statistic.all_time_usd >= 0 %}+{% endif %}${{ statistic.all_time_usd|floatformat:2 }}
+                    <span class="pnl-percent">({% if statistic.all_time_percent >= 0 %}+{% endif %}{{ statistic.all_time_percent|floatformat:2 }}%)</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Общие монеты с процентами -->
+        {% if overall_coins %}
+        <div class="overall-coins-section">
+            <div class="overall-coins-title">📦 Распределение активов</div>
+            <div class="overall-coins">
+                {% for coin in overall_coins %}
+                <div class="coin-badge">
+                    <span>{{ coin.symbol }}</span>
+                    <span>${{ coin.usd_value|floatformat:2 }}</span>
+                    {% if coin.percent_of_total %}
+                    <span class="coin-percent-badge">{{ coin.percent_of_total|floatformat:1 }}%</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Баланс по биржам -->
+    {% if summary_by_connection %}
+        {% for data in summary_by_connection %}
+        <div class="exchange-card">
+            <div class="exchange-header">
+                <div class="exchange-name">{{ data.connection_name }}</div>
+                <div class="total-info">
+                    <div class="total-usd">${{ data.total_usd|floatformat:2 }}</div>
+                    {% if data.percent_of_total %}
+                    <div class="percent-badge">{{ data.percent_of_total|floatformat:1 }}% от общего</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if data.error %}
+            <!-- Ошибка по бирже -->
+            <div class="coin-list show">
+                <div class="coin-item" style="color: #ef4444; border-left-color: #ef4444;">
+                    ⚠️ {{ data.error }}
+                </div>
+            </div>
+            {% else %}
+            <!-- Список значимых монет -->
+            <div class="coin-list">
+                {% if data.significant_coins %}
+                    {% for coin in data.significant_coins %}
+                    <div class="coin-item">
+                        <div class="coin-symbol">
+                            {{ coin.crypto.symbol }}
+                        </div>
+                        <div class="coin-value">
+                            ${{ coin.usd_value|floatformat:2 }}
+                            {% if coin.percent_of_connection %}
+                            <div class="coin-percent">{{ coin.percent_of_connection|floatformat:1 }}%</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="coin-item">
+                        <div class="coin-symbol">Нет крупных позиций</div>
+                        <div class="coin-value">$0.00</div>
+                    </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">🏦</div>
+        <h3>Нет активных подключений</h3>
+        <p>Подключите свою первую биржу, чтобы увидеть балансы</p>
+    </div>
+    {% endif %}
+</main>
+
+<script>
+document.querySelectorAll('.exchange-header').forEach(header => {
+    header.addEventListener('click', () => {
+        const card = header.closest('.exchange-card');
+        const list = card.querySelector('.coin-list');
+        list.classList.toggle('show');
+
+        // Анимация иконки
+        const icon = header.querySelector('.exchange-name::before');
+        if (list.classList.contains('show')) {
+            header.style.setProperty('--icon', '"📂"');
+        } else {
+            header.style.setProperty('--icon', '"🏦"');
+        }
+    });
+});
+
+// Автоматически раскрываем карточки с ошибками
+document.querySelectorAll('.exchange-card').forEach(card => {
+    if (card.querySelector('.coin-item[style*="color: #ef4444"]')) {
+        const list = card.querySelector('.coin-list');
+        list.classList.add('show');
+    }
+});
+</script>
+{% endblock content %}

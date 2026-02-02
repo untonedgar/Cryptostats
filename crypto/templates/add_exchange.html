@@ -1,0 +1,79 @@
+{% extends 'default.html' %}
+{% block content %}
+
+<style>
+.form-box {
+    max-width: 520px;
+    margin: 50px auto;
+    background: #f8fafc;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.08);
+}
+.form-box h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #1e3a8a;
+}
+.form-box label {
+    font-weight: 600;
+    margin-top: 14px;
+    display: block;
+}
+.form-box input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+}
+.form-box button {
+    margin-top: 24px;
+    width: 100%;
+    background: linear-gradient(90deg, #3b82f6, #06b6d4);
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 12px;
+    border-radius: 999px;
+}
+.error {
+    color: #dc2626;
+    text-align: center;
+    margin-bottom: 10px;
+}
+.exchange-badge {
+    text-align: center;
+    font-size: 14px;
+    color: #475569;
+    margin-bottom: 15px;
+}
+</style>
+
+<div class="form-box">
+    <h2>Подключение биржи</h2>
+    <div class="exchange-badge">{{ exchange.name }}</div>
+
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <label>API Key</label>
+        <input type="text" name="api_key" required>
+
+        <label>API Secret</label>
+        <input type="password" name="api_secret" required>
+
+        <label>Passphrase (если требуется)</label>
+        <input type="password" name="api_passphrase">
+
+        <label>Название подключения (опционально)</label>
+        <input type="text" name="nickname" placeholder="Мой Binance">
+
+        <button type="submit">Подключить биржу</button>
+    </form>
+</div>
+
+{% endblock %}
