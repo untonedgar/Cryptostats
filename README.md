@@ -30,7 +30,7 @@
 
 Инструкция по запуску приложения:  
   
-1.git clone https://github.com/virus37161/cryptostats.git  
+1.git clone https://github.com/untonedgar/cryptostats.git  
   
 2.создайте файл .env.dev в директории app  
 SECRET_KEY='секретный ключ Django'  
