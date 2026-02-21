@@ -6,7 +6,7 @@ from django_prometheus.models import ExportModelOperationsMixin
 import uuid
 from decimal import Decimal
 import datetime
-
+import time
 class User(ExportModelOperationsMixin('user'), AbstractUser):
     """Пользователь с расширенными полями для крипто-трекинга"""
     timezone = models.CharField(max_length=50, default='UTC')
@@ -177,96 +177,69 @@ class UserWalletConnection(models.Model):
 
 
 class PriceHistoryManager(models.Manager):
-    """Менеджер для работы с историей цен"""
+    """Менеджер для работы с историей цен с bulk-операциями"""
 
-    def get_current_price(self, cryptocurrency_id: int) -> Decimal:
-        """Получить актуальную цену с проверкой времени и кешированием"""
-        cache_key = f'price_{cryptocurrency_id}_current'
-        price = cache.get(cache_key)
+    def get_current_prices_bulk(self, cryptocurrency_ids: list[int]) -> dict[int, Decimal]:
+        if not cryptocurrency_ids:
+            return {}
 
-        if price is not None:
-            return Decimal(price)
+        start_time = time.perf_counter()
+        print(f"📊 Запрашиваем цены для {len(cryptocurrency_ids)} криптовалют")
 
-        # Берем последнюю запись из базы
-        latest = self.filter(
-            cryptocurrency_id=cryptocurrency_id
-        ).order_by('-timestamp').first()
+        # 1. ВСЕГДА получаем последние цены из базы для ВСЕХ криптовалют
+        latest_prices_qs = self.filter(
+            cryptocurrency_id__in=cryptocurrency_ids
+        ).order_by('cryptocurrency_id', '-timestamp').distinct('cryptocurrency_id')
 
-        if latest:
-            price_age = (timezone.now() - latest.timestamp).total_seconds()
-            if price_age <= PRICE_MAX_AGE:
-                # Цена свежая, ставим в кеш и возвращаем
-                cache.set(cache_key, latest.price_usd, timeout=CACHE_TIMEOUT)
-                return latest.price_usd
+        latest_by_crypto = {price.cryptocurrency_id: price for price in latest_prices_qs}
 
-        # Если цены нет или она старая — делаем запрос к CoinMarketCap
-        crypto = Cryptocurrency.objects.get(id=cryptocurrency_id)
-        # fetch_and_save_cmc_prices ожидает список символов
-        from balance.utils.cryptocurrency import fetch_and_save_cmc_prices
-        fetch_and_save_cmc_prices([crypto.symbol])
+        # 2. Разделяем на свежие и устаревшие
+        fresh_prices = {}
+        outdated_ids = []
+        now = timezone.now()
 
-        # После записи берем последнюю цену снова
-        latest = self.filter(
-            cryptocurrency_id=cryptocurrency_id
-        ).order_by('-timestamp').first()
+        for crypto_id in cryptocurrency_ids:
+            latest_price = latest_by_crypto.get(crypto_id)
 
-        if latest:
-            cache.set(cache_key, latest.price_usd, timeout=CACHE_TIMEOUT)
-            return latest.price_usd
+            if latest_price:
+                price_age = (now - latest_price.timestamp).total_seconds()
+                if price_age <= PRICE_MAX_AGE:
+                    # Цена свежая - обновляем кэш и результат
+                    cache.set(f'price_{crypto_id}_current', str(latest_price.price_usd), CACHE_TIMEOUT)
+                    fresh_prices[crypto_id] = latest_price.price_usd
+                else:
+                    outdated_ids.append(crypto_id)
+            else:
+                outdated_ids.append(crypto_id)
 
-        # Если вдруг цены нет, возвращаем 0
-        return Decimal("0")
+        print(f"✅ Из базы (свежие): {len(fresh_prices)}, нужно у CMC: {len(outdated_ids)}")
 
+        # 3. Запрашиваем устаревшие у CMC
+        result = fresh_prices.copy()
 
-class PriceHistoryManager(models.Manager):
-    """Менеджер для работы с историей цен"""
+        if outdated_ids:
+            outdated_cryptos = Cryptocurrency.objects.filter(id__in=outdated_ids)
+            outdated_symbols = [crypto.symbol for crypto in outdated_cryptos]
 
-    def get_current_price(self, cryptocurrency_id: int) -> Decimal:
-        """Получить актуальную цену с проверкой времени и кешированием"""
-        cache_key = f'price_{cryptocurrency_id}_current'
-        price = cache.get(cache_key)
+            if outdated_symbols:
+                print(f"🌐 Запрашиваем у CMC {len(outdated_symbols)} символов")
 
-        if price is not None:
-            return Decimal(price)
+                from balance.utils.cryptocurrency import fetch_and_save_cmc_prices_bulk
+                cmc_prices = fetch_and_save_cmc_prices_bulk(outdated_symbols)
 
-        # Берем последнюю запись из базы
-        latest = self.filter(
-            cryptocurrency_id=cryptocurrency_id
-        ).order_by('-timestamp').first()
+                for crypto in outdated_cryptos:
+                    price = cmc_prices.get(crypto.symbol)
+                    if price is not None:
+                        cache.set(f'price_{crypto.id}_current', str(price), CACHE_TIMEOUT)
+                        result[crypto.id] = price
+                    else:
+                        result[crypto.id] = Decimal("0")
 
-        if latest:
-            price_age = (timezone.now() - latest.timestamp).total_seconds()
-            if price_age <= PRICE_MAX_AGE:
-                # Цена свежая, ставим в кеш и возвращаем
-                cache.set(cache_key, latest.price_usd, timeout=CACHE_TIMEOUT)
-                return latest.price_usd
+        elapsed = time.perf_counter() - start_time
+        print(f"⏱️ Получено {len(result)} цен за {elapsed:.2f} сек")
 
-        # Если цены нет или она старая — делаем запрос к CoinMarketCap
-        crypto = Cryptocurrency.objects.get(id=cryptocurrency_id)
-        # fetch_and_save_cmc_prices ожидает список символов
-        from balance.utils.cryptocurrency import fetch_and_save_cmc_prices
-        fetch_and_save_cmc_prices([crypto.symbol])
+        return result
 
-        # После записи берем последнюю цену снова
-        latest = self.filter(
-            cryptocurrency_id=cryptocurrency_id
-        ).order_by('-timestamp').first()
-
-        if latest:
-            cache.set(cache_key, latest.price_usd, timeout=CACHE_TIMEOUT)
-            return latest.price_usd
-
-        # Если вдруг цены нет, возвращаем 0
-        return Decimal("0")
-
-    def get_historical_prices(self, cryptocurrency_id, hours=24):
-        """Получить цены за последние N часов (для графиков)"""
-        from_date = timezone.now() - timezone.timedelta(hours=hours)
-
-        return self.filter(
-            cryptocurrency_id=cryptocurrency_id,
-            timestamp__gte=from_date
-        ).order_by('timestamp').values('timestamp', 'price_usd')
 
 
 class PriceHistory(models.Model):
@@ -298,20 +271,9 @@ class PriceHistory(models.Model):
 class BalanceSnapshot(models.Model):
     """Снимок баланса в определенный момент времени"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='balance_snapshots')
-    exchange_connection = models.ForeignKey(
-        UserExchangeConnection,
-        on_delete=models.CASCADE,
-        null=True, blank=True
-    )
     cryptocurrency = models.ForeignKey(Cryptocurrency, on_delete=models.CASCADE)
-
     total_amount = models.DecimalField(max_digits=30, decimal_places=10)  # Всего монет
-    available_amount = models.DecimalField(max_digits=30, decimal_places=10, null=True, blank=True)
-    locked_amount = models.DecimalField(max_digits=30, decimal_places=10, null=True, blank=True)
-
-    price_at_snapshot = models.DecimalField(max_digits=20, decimal_places=8, null=True, blank=True)
     usd_value = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
-
     snapshot_time = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -321,7 +283,7 @@ class BalanceSnapshot(models.Model):
             # Для быстрого получения последнего снимка
             models.Index(fields=['user', 'cryptocurrency', '-snapshot_time']),
             models.Index(fields=['user', '-snapshot_time']),
-            models.Index(fields=['exchange_connection', '-snapshot_time']),
+            models.Index(fields=['-snapshot_time']),
         ]
 
 #
@@ -473,3 +435,4 @@ class PortfolioSnapshot(models.Model):
 #             models.Index(fields=['user', '-last_updated']),
 #             models.Index(fields=['expires_at']),  # Для очистки старых кешей
 #         ]
+

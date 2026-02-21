@@ -1,0 +1,107 @@
+services:
+  app:
+    build:
+      context: ./crypto
+      dockerfile: Dockerfile
+    image: apps_prod:1.0.0
+    command: daphne -b 0.0.0.0 -p 8000 crypto.asgi:application
+    expose:
+      - 8000
+    volumes:
+      - static_volume:/usr/src/app/static
+    restart: unless-stopped
+    env_file:
+      - ./crypto/.env.dev
+    depends_on:
+      - db
+      - redis
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  celery:
+    image: apps_prod:1.0.0
+    command: celery -A crypto worker --loglevel=info --concurrency=2 -E
+    volumes:
+      - static_volume:/usr/src/crypto/static
+    env_file:
+      - ./crypto/.env.dev
+    restart: on-failure
+    depends_on:
+      - redis
+      - db
+    healthcheck:
+      test: ["CMD-SHELL", "celery inspect ping -A app -d celery@$$HOSTNAME || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+
+  redis:
+    image: redis:alpine
+    expose:
+      - 6379
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  db:
+    image: postgres:16-bookworm
+    volumes:
+      - data:/var/lib/postgresql/data/
+    restart: unless-stopped
+    env_file:
+      - ./crypto/.env.dev
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U django -d cryptostats" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  nginx:
+    build: ./nginx
+    image: nginx_prod:1.0.0
+    volumes:
+      - static_volume:/app/static
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - app
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+
+volumes:
+  static_volume:
+  redis_data:
+  es_data:
+  data:
+
+
+
+
+

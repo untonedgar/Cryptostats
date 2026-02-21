@@ -21,13 +21,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-2$zufyzp67#z4tl3wi#lz#fv3&srfl+(8k8o=p+2n16xk!egx-'
-
+SECRET_KEY = environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = environ.get('DEBUG', False)
+if environ.get('ALLOWED_HOSTS'):
+    ALLOWED_HOSTS = environ.get('ALLOWED_HOSTS').split()
+else:
+    ALLOWED_HOSTS = ['*']
 
-ALLOWED_HOSTS = []
-
+if environ.get('CSRF_TRUSTED_ORIGINS'):
+    CSRF_TRUSTED_ORIGINS = environ.get('CSRF_TRUSTED_ORIGINS').split()
 
 # Application definition
 
@@ -65,6 +68,11 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'crypto.urls'
 
+
+
+MORALIS_API_KEY = environ.get('MORALIS_API_KEY')
+X_CMC_PRO_API_KEY = environ.get('X_CMC_PRO_API_KEY')
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -81,7 +89,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'crypto.wsgi.application'
-
+ASGI_APPLICATION = 'crypto.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
@@ -137,21 +145,23 @@ LOCALE_PATHS = [
 
 STATIC_URL = '/static/'
 # STATIC_ROOT = BASE_DIR / 'staticfiles'
-
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
+if DEBUG:
+    STATICFILES_DIRS = [
+        BASE_DIR / 'static'
+        ]
+else:
+    STATIC_ROOT = 'static'
 
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'cryptostats',
-        'USER': 'postgres',
-        'PASSWORD': 'Gertop_virus37',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    },
+        'NAME': environ.get('POSTGRES_DB'),
+        'USER': environ.get('POSTGRES_USER'),
+        'PASSWORD': environ.get('POSTGRES_PASSWORD'),
+        'HOST': 'db',
+        'PORT': environ.get('POSTGRES_PORT'),
+    }
 }
 
 LOGIN_URL = '/crypto/'
@@ -164,9 +174,20 @@ ACCOUNT_USER_MODEL_EMAIL_FIELD = 'email'
 ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_SIGNUP_FIELDS = ['email', 'username', 'password1', 'password2']
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.yandex.ru'
-EMAIL_PORT = 465
-EMAIL_HOST_USER = environ.get('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = environ.get('EMAIL_HOST_PASSWORD')
-EMAIL_USE_SSL = True
+
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://redis:6379/1'
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 минут
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': 'redis://redis:6379/2',
+        'TIMEOUT': 300,  # 5 минут
+    }
+}

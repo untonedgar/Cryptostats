@@ -5,6 +5,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from balance.utils.calculations import unrealized_pnl
 from balance.utils.utils_for_view import *
+from balance.tasks.tasks import process_users_balance_task
+from asgiref.sync import sync_to_async
 
 class ExchangeList (LoginRequiredMixin, ListView):
     model = Exchange
@@ -55,6 +57,7 @@ def add_exchange(request, exchange_id):
 def add_wallet(request):
     networks = BlockchainNetwork.objects.all().order_by('name')
 
+    # 🔹 существующие nickname пользователя
     existing_nicknames = (
         UserWalletConnection.objects
         .filter(user=request.user, nickname__isnull=False)
@@ -120,22 +123,29 @@ class UserExchangesListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         user = self.request.user
 
+        # Получаем все подключения бирж
         exchanges = list(UserExchangeConnection.objects.filter(
             user=user
         ).select_related('exchange'))
+
+        # Получаем все кошельки и группируем их по nickname
         wallets = UserWalletConnection.objects.filter(
             user=user
         ).select_related('network')
 
+        # Группируем кошельки по nickname
         wallet_groups = defaultdict(list)
         for wallet in wallets:
             nickname = wallet.nickname or 'Без имени'
             wallet_groups[nickname].append(wallet)
 
+        # Создаем конечный список подключений
         connections_list = []
 
+        # 1. Добавляем все биржи как отдельные объекты
         connections_list.extend(exchanges)
 
+        # 2. Добавляем сгруппированные кошельки как словари
         for nickname, wallet_list in wallet_groups.items():
             connections_list.append({
                 'type': 'wallet_group',
@@ -202,18 +212,24 @@ def delete_exchange(request, pk):
     return redirect('my_exchanges')
 
 
-
 @login_required
-def view_user_balances(request):
-    exchange_connections = UserExchangeConnection.objects.filter(user=request.user)
-    wallet_connections = UserWalletConnection.objects.filter(user=request.user)
+async def view_user_balances(request):
+    exchange_connections = await sync_to_async(
+        lambda: list(UserExchangeConnection.objects.filter(user=request.user))
+    )()
 
+    wallet_connections = await sync_to_async(
+        lambda: list(UserWalletConnection.objects.filter(user=request.user))
+    )()
+    # Создаем обработчики
     handlers = [ExchangeConnectionHandler(c) for c in exchange_connections]
     handlers += [WalletConnectionHandler(c) for c in wallet_connections]
 
-    summary_by_connection, total_balance_usd, overall_coins = aggregate_balances(handlers)
+    # Агрегируем баланс
+    summary_by_connection, total_balance_usd, overall_coins,  = await aggregate_balances(handlers)
 
-    statistic = unrealized_pnl(request.user, total_balance_usd)
+    # PnL статисвстика
+    statistic = await sync_to_async(unrealized_pnl)(request.user, total_balance_usd)
 
     context = {
         "summary_by_connection": summary_by_connection,

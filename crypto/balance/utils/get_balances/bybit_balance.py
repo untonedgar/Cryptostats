@@ -1,7 +1,9 @@
 from decimal import Decimal
 from pybit.unified_trading import HTTP
 from balance.utils.cryptocurrency import create_cryptocurrency_if_missing
+from balance.utils.optimizathion import timer
 
+@timer
 def fetch_bybit_raw_balances(user_connection) -> dict[str, Decimal]:
     """
     Возвращает агрегированный баланс монет:

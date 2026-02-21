@@ -4,8 +4,8 @@ import hashlib
 from urllib.parse import urlencode
 from decimal import Decimal
 import requests
-
-
+from balance.utils.optimizathion import timer
+@timer
 def fetch_mexc_raw_balances(user_connection) -> dict[str, Decimal]:
     """Возвращает баланс монет на MEXC в виде { 'BTC': Decimal('0.12'), ... }"""
 

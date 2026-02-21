@@ -30,6 +30,7 @@ def unrealized_pnl(user, total_balance_usd: Decimal):
         "monthly_percent": None,
     }
 
+    # --- дневной снапшот (самый старый за сегодня) ---
     daily_snapshot = (
         PortfolioSnapshot.objects
         .filter(user=user, snapshot_time__gte=start_of_today)
@@ -43,6 +44,7 @@ def unrealized_pnl(user, total_balance_usd: Decimal):
         result["daily_usd"] = daily_usd.quantize(Decimal("0.01"))
         result["daily_percent"] = daily_percent.quantize(Decimal("0.01"))
 
+    # --- месячный снапшот (самый старый за день месяц назад) ---
     monthly_snapshot = (
         PortfolioSnapshot.objects
         .filter(user=user,
