@@ -26,4 +26,31 @@
 7. Чат-поддержка (в процессе)  
 8. Валидация вводимых данных (в процессе)  
 9. Переодические задачи  (готово)  
-10. Иное (в процессе)  
+10. Иное (в процессе)    
+
+Инструкция по запуску приложения:  
+  
+1.git clone https://github.com/virus37161/cryptostats.git  
+  
+2.создайте файл .env.dev в директории app  
+SECRET_KEY='секретный ключ Django'  
+ALLOWED_HOSTS=localhost 127.0.0.1  
+CSRF_TRUSTED_ORIGINS=http://localhost:8001  
+  
+POSTGRES_USER=django  
+POSTGRES_PASSWORD=password  
+POSTGRES_DB=cryptostats    
+POSTGRES_PORT=5432  
+  
+CELERY_BROKER_URL=redis://redis:6379/0  
+CELERY_RESULT_BACKEND=redis://redis:6379/1  
+REDIS_URL=redis://redis:6379/2    
+    
+MORALIS_API_KEY = "необходимо получить api-ключ от данного сервиса"  
+X_CMC_PRO_API_KEY = "необходимо получить api-ключ от данного сервиса"  
+  
+3.Запускаем приложение docker compose up  
+Переходим по адресу http://localhost:8001/crypto  
+  
+Чтобы создать админа, необходимо в контейнере app-1 создать  
+пользователя admin (python manage.py createsuperuser)      
